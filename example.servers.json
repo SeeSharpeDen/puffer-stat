@@ -1,0 +1,40 @@
+[
+    {
+        "server_url": "https://pufferpanel.example.com/server/30f6e012",
+        "client_id": "CHANGE ME",
+        "client_secret": "CHANGE ME",
+        "command": "status",
+        "regex": [
+            "Total Players:\\s*(\\d*)",
+            "Uptime:\\s*(\\d*)"
+        ],
+        "embed_template": {
+            "type": "rich",
+            "title": "${settings.name.value}",
+            "description": "${settings.description.value}",
+            "color": 65535,
+            "fields": [
+                {
+                    "name": "Players",
+                    "value": "${regex.0}",
+                    "inline": true
+                },
+                {
+                    "name": "Uptime",
+                    "value": "${regex.1}ms",
+                    "inline": true
+                },
+                {
+                    "name": "Host",
+                    "value": "${server.node.publicHost}",
+                    "inline": true
+                }
+            ],
+            "author": {
+                "name": "${server.name}",
+                "url": "${self.server_url}",
+                "icon_url": "https://beammp.com/img/mainlogo.png"
+            }
+        }
+    }
+]
