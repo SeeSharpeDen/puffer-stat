@@ -1,5 +1,5 @@
 import { ApplicationCommandTypes, InteractionResponseTypes, transformEmbed } from "../../deps.ts";
-import { do_embed, servers, transform_embed } from "../server.ts";
+import { do_embed, game_servers, transform_embed } from "../server.ts";
 import { createCommand } from "./mod.ts";
 
 createCommand({
@@ -9,14 +9,18 @@ createCommand({
     scope: "Global",
     execute: async (bot, interaction) => {
         let embeds = [];
-        for (const server of servers) {
+        for (const server of game_servers) {
             try {
-                embeds.push(await do_embed(server));   
+                let embed = await do_embed(server);
+                // embeds.push(transform_embed(embed));
+                embeds.push(embed);
             } catch (error) {
-                console.log(`Error with ${server.server_url}: ${error.toString()}`);
+                console.log(`Error with ${server.server.url}: ${error.toString()}`);
                 console.error(error);
             }
         }
+        console.log(embeds);
+        
         await bot.helpers.sendInteractionResponse(
             interaction.id,
             interaction.token,

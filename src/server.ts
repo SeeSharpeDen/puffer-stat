@@ -1,59 +1,60 @@
-import { DiscordEmbed, Embed, reset, TextStyles, transformEmbed } from "../deps.ts";
+import { DiscordEmbed, Embed, paths, reset, TextStyles, transformEmbed } from "../deps.ts";
 
-interface Token {
-    access_token: String;
-    token_type: String;
-    expires_in: Number;
-    scope: String;
+export class Token {
+    access_token: string = "";
+    token_type: string = "";
+    expires_in: number = NaN;
+    scope: string = "";
 }
 
 export class Server {
-    puffer: string;
-    token?: Token;
-    id: string;
-    server_url: string;
-    client_id: string;
-    client_secret: string;
-    command: string;
-    regex: string[];
-    embed_template: DiscordEmbed;
+    url: string = "";
+    client: string = "";
+    secret: string = "";
+
+    // These are inferred from the url.
+    id: string = "";
+    api: string = "";
 
     constructor(json: any) {
-        this.puffer = json.server_url.replace(/\/server\/[0-9a-f]*/i, "");
-        {
-            let match = json.server_url.match(/\/server\/([0-9a-f]*)/i);
+        this.url = json.url;
+        this.client = json.client;
+        this.secret = json.secret;
 
-            if (match != null && match.length > 1) {
-                this.id = match[1];
-            } else {
-                throw new Error(`Server url '${json.server_url}' is invalid.`);
-            }
-        }
-        this.server_url = json.server_url;
-        this.client_id = json.client_id;
-        this.client_secret = json.client_secret;
-        this.command = json.command;
-        this.regex = json.regex;
-        this.embed_template = json.embed_template;
-    }
-
-    get authorization(): string {
-        if (this.token != null) {
-            return `${this.token.token_type} ${this.token.access_token}`;
+        // Get the root url and server ID from the provided url.
+        let match = json.url.match(/(https?:\/\/.*)\/server\/([0-9a-f]{8})/i);
+        if (match.length == 3) {
+            this.id = match[2];
+            this.api = match[1];
         } else {
-            return "";
+            throw new Error(`Invalid Server URL '${json.url}'`);
         }
     }
 }
 
-export async function do_embed(server: Server): Promise<DiscordEmbed> {
-    // Convert the embed to json text and search for our variable pattern.
-    var embed_template = JSON.stringify(server.embed_template);
+export class GameServer {
+    server: Server;
+    token?: Token;
+    command?: string;
+    regex: string[];
+    embed: string;
+
+    constructor(json: any) {
+        this.server = new Server(json.server);
+        this.command = json.command;
+        this.regex = json.regex;
+        this.embed = json.embed;
+    }
+}
+
+export async function do_embed(gs: GameServer): Promise<DiscordEmbed> {
+    var embed_template = await Deno.readTextFile(`./config/embeds/${gs.embed}`);
+
+    // Get all strings starting with '${' and ending with '} (${name})';
     const matches = Array.from(embed_template.matchAll(/\${([^}]*)}/g));
 
-    var need_settings = false;
-    var need_server = false;
-    var need_command = false;
+    // Figure out what requests we need to make to pufferpanel.
+    var need_settings, need_server, need_command = false;
 
     for (const key in matches) {
         let value = matches[key][1];
@@ -66,26 +67,28 @@ export async function do_embed(server: Server): Promise<DiscordEmbed> {
         }
     }
 
+    // TODO: Remove secret & token from source so embeds cant leak oauth access.
     const source: Source = {
-        self: server,
+        self: gs,
     };
 
     // TODO Make each of these concurrent (all 3 at the same time)
     if (need_settings) {
-        source.settings = (await get_server_data(server)).data;
+        source.settings = (await get_server_data(gs)).data;
     }
     if (need_server) {
-        source.server = (await get_server(server)).server;
+        source.server = (await get_server(gs)).server;
     }
     if (need_command) {
-        const epoc = Math.floor(Date.now() / 1000) - 1;
-        await post_command(server, server.command);
-        const log = await get_server_log(server, epoc);
+        if (gs.command == null) {
+            throw new Error("Server Config doesn't have a command but embed requires it.");
+        }
+        const log = await send_command(gs, gs.command);
 
         source.regex = new Array<string>();
 
-        for (let i = 0; i < server.regex.length; i++) {
-            const regex = server.regex[i];
+        for (let i = 0; i < gs.regex.length; i++) {
+            const regex = gs.regex[i];
             const rg = new RegExp(regex, "g");
             for (const match of log.matchAll(rg)) {
                 source.regex.push(match[1]);
@@ -98,7 +101,9 @@ export async function do_embed(server: Server): Promise<DiscordEmbed> {
         let pattern = matches[match][0];
 
         // @ts-ignore: This is some JS magic that converts a string into variables.
-        let value: string = key.split(".").reduce((p, c) => p&&p[c]||null, source);
+        let value: string = key.split(".").reduce((p, c) => p && p[c] || null, source);
+
+        embed_template = embed_template.replaceAll(pattern, value);
 
         if (value != null) {
             embed_template = embed_template.replaceAll(pattern, value);
@@ -117,49 +122,48 @@ export function transform_embed(from: DiscordEmbed): Embed {
         timestamp: from.timestamp ? Date.parse(from.timestamp) : undefined,
         color: from.color,
         footer: from.footer
-          ? {
-            text: from.footer.text,
-            iconUrl: from.footer.icon_url,
-            proxyIconUrl: from.footer.proxy_icon_url,
-          }
-          : undefined,
+            ? {
+                text: from.footer.text,
+                iconUrl: from.footer.icon_url,
+                proxyIconUrl: from.footer.proxy_icon_url,
+            }
+            : undefined,
         image: from.image
-          ? {
-            url: from.image.url,
-            proxyUrl: from.image.proxy_url,
-            height: from.image.height,
-            width: from.image.width,
-          }
-          : undefined,
+            ? {
+                url: from.image.url,
+                proxyUrl: from.image.proxy_url,
+                height: from.image.height,
+                width: from.image.width,
+            }
+            : undefined,
         thumbnail: from.thumbnail
-          ? {
-            url: from.thumbnail.url,
-            proxyUrl: from.thumbnail.proxy_url,
-            height: from.thumbnail.height,
-            width: from.thumbnail.width,
-          }
-          : undefined,
+            ? {
+                url: from.thumbnail.url,
+                proxyUrl: from.thumbnail.proxy_url,
+                height: from.thumbnail.height,
+                width: from.thumbnail.width,
+            }
+            : undefined,
         video: from.video
-          ? {
-            url: from.video.url,
-            proxyUrl: from.video.proxy_url,
-            height: from.video.height,
-            width: from.video.width,
-          }
-          : undefined,
+            ? {
+                url: from.video.url,
+                proxyUrl: from.video.proxy_url,
+                height: from.video.height,
+                width: from.video.width,
+            }
+            : undefined,
         provider: from.provider,
         author: from.author
-          ? {
-            name: from.author.name,
-            url: from.author.url,
-            iconUrl: from.author.icon_url,
-            proxyIconUrl: from.author.proxy_icon_url,
-          }
-          : undefined,
+            ? {
+                name: from.author.name,
+                url: from.author.url,
+                iconUrl: from.author.icon_url,
+                proxyIconUrl: from.author.proxy_icon_url,
+            }
+            : undefined,
         fields: from.fields,
-      };
+    };
 }
-
 
 interface Source {
     self: any;
@@ -167,85 +171,95 @@ interface Source {
     server?: any;
     settings?: any;
 }
-// Get the server's details from puffer panel.
-export async function get_server(server: Server): Promise<any> {
-    if (server.token == null) {
-        server.token = await get_token(server);
+async function puffer_request(gs: GameServer, url: string, method?: string, body?: string): Promise<Response> {
+    console.log(url);
+    
+    if (gs.token == null) {
+        // No token, get a new one.
+        gs.token = await get_token(gs);
     }
+    
+    let result = await fetch(url, {
+        body: body,
+        method: method,
+        headers: { "Authorization": `${gs.token?.token_type} ${gs.token?.access_token}` },
+    }).then(async function (res: Response) {
+        // If the request is 403... get a new token.
+        if (res.status == 403) {
+            let json = await res.json();
+            let error = json.error;
+            console.log(error);
+            console.warn(`Forbidden: ${error.code}: ${error.msg} ${error.metadata.scope}`);
+        }
+        return res;
+    }).then(error);
 
-    return await fetch(`${server.puffer}/api/servers/${server.id}`, {
-        headers: { "Authorization": server.authorization },
-    }).then(function (resp) {
-        return resp.json();
-    });
+    return result;
+}
+
+// Get the server's details from puffer panel.
+export async function get_server(gs: GameServer): Promise<any> {
+    return await puffer_request(gs, `${gs.server.api}/api/servers/${gs.server.id}`).then(json);
 }
 
 // Get the server's settings/data.
-export async function get_server_data(server: Server): Promise<any> {
-    if (server.token == null) {
-        server.token = await get_token(server);
-    }
-
-    return await fetch(`${server.puffer}/daemon/server/${server.id}/data`, {
-        headers: { "Authorization": server.authorization },
-    }).then(auth).then(error).then(json);
+export async function get_server_data(gs: GameServer): Promise<any> {
+    return await puffer_request(gs, `${gs.server.api}/daemon/server/${gs.server.id}/data`).then(json);
 }
 
 // Send a command to the server.
-export async function post_command(server: Server, command: string) {
-    if (server.token == null) {
-        server.token = await get_token(server);
-    }
-
-    let log = await fetch(`${server.puffer}/daemon/server/${server.id}/console`, {
-        body: command,
-        method: "POST",
-        headers: { "Authorization": server.authorization },
-    }).then(auth).then(error);
+export async function post_command(gs: GameServer, command: string) {
+    await puffer_request(gs, `${gs.server.api}/daemon/server/${gs.server.id}/console`, "POST", command);
 }
 
 // Get the logs from the server.
-export async function get_server_log(server: Server, epoc: Number): Promise<string> {
-    if (server.token == null) {
-        server.token = await get_token(server);
-    }
-
-    let log = await fetch(`${server.puffer}/daemon/server/${server.id}/console?time=${epoc}`, {
-        headers: { "Authorization": server.authorization },
-    }).then(auth).then(error).then(json);
-
+export async function get_server_log(gs: GameServer, epoc: Number): Promise<string> {
+    const log = await puffer_request(gs, `${gs.server.api}/daemon/server/${gs.server.id}/console?time=${epoc}`).then(json);
     return log.logs;
 }
 
-async function auth(res: Response): Promise<Response> {
-    if (res.status == 403) {
-        let json = await res.json();
-        let error = json.error;
-        console.log(error);
+// Send a command to the server and get recent logs from the console..
+export async function send_command(gs: GameServer, command: string) {
+    // TODO: Find out if we can get closer to now (1 second atm 🤯)
+    const epoc = Math.floor(Date.now() / 1000) - 1;
 
-        throw new Error(`Forbidden: ${error.code}: ${error.msg} ${error.metadata.scope}`);
-    }
-    return res;
+    // Send the command to the console and wait.
+    await puffer_request(gs, `${gs.server.api}/daemon/server/${gs.server.id}/console`, "POST", command);
+
+    // Get and wait for the last 1 seconds from the console then return the results.
+    const log = await puffer_request(gs, `${gs.server.api}/daemon/server/${gs.server.id}/console?time=${epoc}`).then(json);
+    return log.logs;
 }
+
+/// pufferpanel json.
 async function error(res: Response): Promise<Response> {
     if (!res.ok) {
-        let json = await res.json();
-        let error = json.error;
-        console.log(error);
+        var error = new Error("Http Response Error");
+        let text = await res.text();
+        try {
+            let json = JSON.parse(text);
+            let error = json.error;
+            console.log(error);
+            error = new Error(error);
+        } catch {
+            error = new Error(`${res.status}: ${res.statusText}. ${text}`);
+        }
 
-        throw new Error(error);
+        throw error;
     }
     return res;
 }
 
+/// fetch json.
 async function json(res: Response): Promise<any> {
     return res.json();
 }
 
-async function get_token(server: Server): Promise<Token> {
-    let response = await fetch(`${server.puffer}/oauth2/token`, {
+/// Get's an access token for a game server.
+async function get_token(gs: GameServer): Promise<Token> {
+    let response = await fetch(`${gs.server.api}/oauth2/token`, {
         method: "POST",
-        body: `grant_type=client_credentials&client_id=${server.client_id}&client_secret=${server.client_secret}`,
+        body: `grant_type=client_credentials&client_id=${gs.server.client}&client_secret=${gs.server.secret}`,
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
     }).then(function (resp) {
         return resp.json();
@@ -258,12 +272,12 @@ async function get_token(server: Server): Promise<Token> {
     return response as Token;
 }
 
-export let servers = load_servers(JSON.parse(Deno.readTextFileSync("./servers.json")));
-
-function load_servers(json: any): Server[] {
-    let servers = new Array<Server>();
+/// Get all the game servers.
+export let game_servers = load_game_servers(JSON.parse(Deno.readTextFileSync("./config/servers.json")));
+function load_game_servers(json: any): GameServer[] {
+    let servers = new Array<GameServer>();
     json.forEach((server: any) => {
-        servers.push(new Server(server));
+        servers.push(new GameServer(server));
     });
 
     return servers;

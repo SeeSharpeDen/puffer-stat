@@ -1,5 +1,5 @@
 import { ApplicationCommandTypes, InteractionResponseTypes } from "../../deps.ts";
-import { servers } from "../server.ts";
+import { game_servers } from "../server.ts";
 import { createCommand } from "./mod.ts";
 
 createCommand({
@@ -11,8 +11,8 @@ createCommand({
 
         // Get all the unique hosts from the servers file.
         let hosts: Array<string> = [];
-        servers.forEach((server) => {
-            let url = new URL(server.puffer);
+        game_servers.forEach((gs) => {
+            let url = new URL(gs.server.url);
             if (!hosts.includes(url.host)) {
                 hosts.push(url.host);
             }
@@ -24,7 +24,7 @@ createCommand({
             {
                 type: InteractionResponseTypes.ChannelMessageWithSource,
                 data: {
-                    content: `🐡 ${servers.length} servers on ${hosts.length} instances.`,
+                    content: `🐡 ${game_servers.length} servers on ${hosts.length} instances.`,
                 },
             },
         );

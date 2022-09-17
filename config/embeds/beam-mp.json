@@ -1,0 +1,28 @@
+{
+    "type": "rich",
+    "title": "${settings.name.value}",
+    "description": "${settings.description.value}",
+    "color": 65535,
+    "fields": [
+        {
+            "name": "Players",
+            "value": "${regex.players}",
+            "inline": true
+        },
+        {
+            "name": "Uptime",
+            "value": "${regex.uptime}ms",
+            "inline": true
+        },
+        {
+            "name": "Host",
+            "value": "${server.node.publicHost}",
+            "inline": true
+        }
+    ],
+    "author": {
+        "name": "${server.name}",
+        "url": "${self.server_url}",
+        "icon_url": "https://beammp.com/img/mainlogo.png"
+    }
+}

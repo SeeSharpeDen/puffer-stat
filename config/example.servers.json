@@ -1,0 +1,41 @@
+[
+    {
+        "server": {
+            "url": "https://pufferpanel.minecraft.com/server/30f6e012",
+            "client": "Change Me",
+            "secret": "Change Me"
+        },
+        "command": "status",
+        "regex": [
+            "Total Players:\\s*(\\d*)",
+            "Uptime:\\s*(\\d*)"
+        ],
+        "embed": "beam-mp.json"
+    },
+    {
+        "server": {
+            "url": "https://pufferpanel.example.com/server/b5d9442e",
+            "client": "Change Me",
+            "secret": "Change Me"
+        },
+        "command": "status",
+        "regex": [
+            "Total Players:\\s*(\\d*)",
+            "Uptime:\\s*(\\d*)"
+        ],
+        "embed": "beam-mp.json"
+    },
+    {
+        "server": {
+            "url": "https://steveirwan.com/server/71cf360d",
+            "client": "Change Me",
+            "secret": "Change Me"
+        },
+        "command": "status",
+        "regex": [
+            "Total Players:\\s*(\\d*)",
+            "Uptime:\\s*(\\d*)"
+        ],
+        "embed": "beam-mp.json"
+    }
+]
