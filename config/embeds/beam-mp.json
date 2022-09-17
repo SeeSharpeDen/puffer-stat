@@ -6,12 +6,12 @@
     "fields": [
         {
             "name": "Players",
-            "value": "${regex.0}",
+            "value": "${regex.players}",
             "inline": true
         },
         {
             "name": "Uptime",
-            "value": "${regex.1}ms",
+            "value": "${regex.uptime} hours",
             "inline": true
         },
         {

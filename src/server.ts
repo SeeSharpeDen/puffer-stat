@@ -1,4 +1,4 @@
-import { DiscordEmbed, Embed, paths, reset, TextStyles, transformEmbed } from "../deps.ts";
+import { Embed } from "../deps.ts";
 
 export class Token {
     access_token: string = "";
@@ -36,7 +36,7 @@ export class GameServer {
     server: Server;
     token?: Token;
     command?: string;
-    regex: string[];
+    regex: Record<string, string>;
     embed: string;
 
     constructor(json: any) {
@@ -45,6 +45,13 @@ export class GameServer {
         this.regex = json.regex;
         this.embed = json.embed;
     }
+}
+
+interface Source {
+    self: any;
+    regex: Record<string, string>;
+    server?: any;
+    settings?: any;
 }
 
 export async function do_embed(gs: GameServer): Promise<Embed> {
@@ -70,6 +77,7 @@ export async function do_embed(gs: GameServer): Promise<Embed> {
     // TODO: Remove secret & token from source so embeds cant leak oauth access.
     const source: Source = {
         self: gs,
+        regex: {},
     };
 
     // TODO Make each of these concurrent (all 3 at the same time)
@@ -83,15 +91,13 @@ export async function do_embed(gs: GameServer): Promise<Embed> {
         if (gs.command == null) {
             throw new Error("Server Config doesn't have a command but embed requires it.");
         }
+
         const log = await send_command(gs, gs.command);
 
-        source.regex = new Array<string>();
-
-        for (let i = 0; i < gs.regex.length; i++) {
-            const regex = gs.regex[i];
-            const rg = new RegExp(regex, "g");
+        for (const key in gs.regex) {
+            const rg = new RegExp(gs.regex[key], "g");
             for (const match of log.matchAll(rg)) {
-                source.regex.push(match[1]);
+                source.regex[key] = match[1];
             }
         }
     }
@@ -113,20 +119,14 @@ export async function do_embed(gs: GameServer): Promise<Embed> {
     return JSON.parse(embed_template) as Embed;
 }
 
-interface Source {
-    self: any;
-    regex?: Array<string>;
-    server?: any;
-    settings?: any;
-}
 async function puffer_request(gs: GameServer, url: string, method?: string, body?: string): Promise<Response> {
     console.log(url);
-    
+
     if (gs.token == null) {
         // No token, get a new one.
         gs.token = await get_token(gs);
     }
-    
+
     let result = await fetch(url, {
         body: body,
         method: method,
@@ -162,7 +162,9 @@ export async function post_command(gs: GameServer, command: string) {
 
 // Get the logs from the server.
 export async function get_server_log(gs: GameServer, epoc: Number): Promise<string> {
-    const log = await puffer_request(gs, `${gs.server.api}/daemon/server/${gs.server.id}/console?time=${epoc}`).then(json);
+    const log = await puffer_request(gs, `${gs.server.api}/daemon/server/${gs.server.id}/console?time=${epoc}`).then(
+        json,
+    );
     return log.logs;
 }
 
@@ -175,7 +177,9 @@ export async function send_command(gs: GameServer, command: string) {
     await puffer_request(gs, `${gs.server.api}/daemon/server/${gs.server.id}/console`, "POST", command);
 
     // Get and wait for the last 1 seconds from the console then return the results.
-    const log = await puffer_request(gs, `${gs.server.api}/daemon/server/${gs.server.id}/console?time=${epoc}`).then(json);
+    const log = await puffer_request(gs, `${gs.server.api}/daemon/server/${gs.server.id}/console?time=${epoc}`).then(
+        json,
+    );
     return log.logs;
 }
 
@@ -216,6 +220,8 @@ async function get_token(gs: GameServer): Promise<Token> {
     if (response.error) {
         throw new Error(`Token Error: ${response.error}`);
     }
+
+    console.log(`New Token for ${gs.server.url}`);
 
     return response as Token;
 }

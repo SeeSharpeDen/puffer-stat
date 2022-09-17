@@ -6,10 +6,10 @@
             "secret": "Change Me"
         },
         "command": "status",
-        "regex": [
-            "Total Players:\\s*(\\d*)",
-            "Uptime:\\s*(\\d*)"
-        ],
+        "regex": {
+            "players": "Total Players:\\s*(\\d*)",
+            "uptime": "Uptime:.*\\(~(\\d*)"
+        },
         "embed": "beam-mp.json"
     },
     {
@@ -19,10 +19,10 @@
             "secret": "Change Me"
         },
         "command": "status",
-        "regex": [
-            "Total Players:\\s*(\\d*)",
-            "Uptime:\\s*(\\d*)"
-        ],
+        "regex": {
+            "players": "Total Players:\\s*(\\d*)",
+            "uptime": "Uptime:.*\\(~(\\d*)"
+        },
         "embed": "beam-mp.json"
     },
     {
@@ -32,10 +32,10 @@
             "secret": "Change Me"
         },
         "command": "status",
-        "regex": [
-            "Total Players:\\s*(\\d*)",
-            "Uptime:\\s*(\\d*)"
-        ],
+        "regex": {
+            "players": "Total Players:\\s*(\\d*)",
+            "uptime": "Uptime:.*\\(~(\\d*)"
+        },
         "embed": "beam-mp.json"
     }
 ]

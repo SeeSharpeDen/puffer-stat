@@ -1,5 +1,5 @@
 import { ApplicationCommandTypes, InteractionResponseTypes, transformEmbed } from "../../deps.ts";
-import { do_embed, game_servers, transform_embed } from "../server.ts";
+import { do_embed, game_servers } from "../server.ts";
 import { createCommand } from "./mod.ts";
 
 createCommand({
