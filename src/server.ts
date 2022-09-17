@@ -47,7 +47,7 @@ export class GameServer {
     }
 }
 
-export async function do_embed(gs: GameServer): Promise<DiscordEmbed> {
+export async function do_embed(gs: GameServer): Promise<Embed> {
     var embed_template = await Deno.readTextFile(`./config/embeds/${gs.embed}`);
 
     // Get all strings starting with '${' and ending with '} (${name})';
@@ -110,59 +110,7 @@ export async function do_embed(gs: GameServer): Promise<DiscordEmbed> {
         }
     }
 
-    return JSON.parse(embed_template) as DiscordEmbed;
-}
-
-export function transform_embed(from: DiscordEmbed): Embed {
-    return {
-        title: from.title,
-        type: from.type,
-        description: from.description,
-        url: from.url,
-        timestamp: from.timestamp ? Date.parse(from.timestamp) : undefined,
-        color: from.color,
-        footer: from.footer
-            ? {
-                text: from.footer.text,
-                iconUrl: from.footer.icon_url,
-                proxyIconUrl: from.footer.proxy_icon_url,
-            }
-            : undefined,
-        image: from.image
-            ? {
-                url: from.image.url,
-                proxyUrl: from.image.proxy_url,
-                height: from.image.height,
-                width: from.image.width,
-            }
-            : undefined,
-        thumbnail: from.thumbnail
-            ? {
-                url: from.thumbnail.url,
-                proxyUrl: from.thumbnail.proxy_url,
-                height: from.thumbnail.height,
-                width: from.thumbnail.width,
-            }
-            : undefined,
-        video: from.video
-            ? {
-                url: from.video.url,
-                proxyUrl: from.video.proxy_url,
-                height: from.video.height,
-                width: from.video.width,
-            }
-            : undefined,
-        provider: from.provider,
-        author: from.author
-            ? {
-                name: from.author.name,
-                url: from.author.url,
-                iconUrl: from.author.icon_url,
-                proxyIconUrl: from.author.proxy_icon_url,
-            }
-            : undefined,
-        fields: from.fields,
-    };
+    return JSON.parse(embed_template) as Embed;
 }
 
 interface Source {

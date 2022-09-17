@@ -12,14 +12,12 @@ createCommand({
         for (const server of game_servers) {
             try {
                 let embed = await do_embed(server);
-                // embeds.push(transform_embed(embed));
                 embeds.push(embed);
             } catch (error) {
                 console.log(`Error with ${server.server.url}: ${error.toString()}`);
                 console.error(error);
             }
         }
-        console.log(embeds);
         
         await bot.helpers.sendInteractionResponse(
             interaction.id,
