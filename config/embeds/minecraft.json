@@ -1,17 +1,17 @@
 {
     "type": "rich",
     "title": "${settings.name.value}",
-    "description": "${settings.description.value}",
-    "color": 65535,
+    "description": "${settings.motd.value}",
+    "color": 4298035,
     "fields": [
         {
             "name": "Players",
-            "value": "${regex.players}",
+            "value": "${regex.players} of ${regex.max-players}",
             "inline": true
         },
         {
-            "name": "Uptime",
-            "value": "${regex.uptime} hours",
+            "name": "Version",
+            "value": "${settings.game-version}",
             "inline": true
         },
         {
@@ -23,6 +23,6 @@
     "author": {
         "name": "${server.name}",
         "url": "${self.server.url}",
-        "icon_url": "https://cdn.discordapp.com/attachments/929980406135132191/1020713004859412530/unknown.png"
+        "icon_url": "https://cdn.discordapp.com/attachments/929980406135132191/1020712827142537296/unknown.png"
     }
 }

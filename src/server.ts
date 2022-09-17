@@ -136,8 +136,7 @@ async function puffer_request(gs: GameServer, url: string, method?: string, body
         if (res.status == 403) {
             let json = await res.json();
             let error = json.error;
-            console.log(error);
-            console.warn(`Forbidden: ${error.code}: ${error.msg} ${error.metadata.scope}`);
+            throw(new Error(`Forbidden: ${error.code}: ${error.msg} ${error.metadata.scope}`));
         }
         return res;
     }).then(error);
@@ -198,8 +197,9 @@ async function error(res: Response): Promise<Response> {
         }
 
         throw error;
+    } else {
+        return res;
     }
-    return res;
 }
 
 /// fetch json.
