@@ -6,12 +6,12 @@
     "fields": [
         {
             "name": "Players",
-            "value": "${regex.players}",
+            "value": "${regex.0}",
             "inline": true
         },
         {
             "name": "Uptime",
-            "value": "${regex.uptime}ms",
+            "value": "${regex.1}ms",
             "inline": true
         },
         {
@@ -22,7 +22,7 @@
     ],
     "author": {
         "name": "${server.name}",
-        "url": "${self.server_url}",
+        "url": "${self.server.url}",
         "icon_url": "https://beammp.com/img/mainlogo.png"
     }
 }
